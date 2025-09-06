@@ -16,10 +16,16 @@ varying vec2 vTexCoord;
 uniform sampler2D tex0;
 uniform float u_flip;
 uniform float u_opacityGhost;
+uniform float u_contrast;
 void main() {
   vec2 uv = vTexCoord;
   if (u_flip > 0.5) uv.x = 1.0 - uv.x;
   vec4 c = texture2D(tex0, uv);
+  
+  // Apply contrast adjustment
+  c.rgb = ((c.rgb - 0.5) * u_contrast + 0.5);
+  c.rgb = clamp(c.rgb, 0.0, 1.0);
+  
   // Opaque output, RGB modulated by u_opacityGhost to make a stable ghost behind points
   gl_FragColor = vec4(c.rgb * u_opacityGhost, 1.0);
 }`;

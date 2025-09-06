@@ -7,6 +7,7 @@
 	import ControlsPanel from '$lib/ui/ControlsPanel.svelte';
 	import { stepParticles } from '$lib/particles/physics.js';
 	import { Particle } from '$lib/particles/Particle.js';
+	import { camVert, camFrag } from '$lib/shaders/camShader.js';
 
 	let sketchContainer;
 	let p5Instance;
@@ -17,6 +18,10 @@
 	let uiGhostOpacity = 0.35;
 	let uiSizeScale = 1.0;
 	let uiOpacity = 1.0;
+	let uiContrast = 1.0;
+	let uiContrastEnabled = true;
+	let uiShowFPS = true;
+	let currentFPS = 0;
 	let config = {
 		neighborRadius: 40,
 		maxNeighbors: 40,
@@ -33,7 +38,7 @@
 	};
 
 	function handlePanelChange(e) {
-		({ particleCount, ghostEnabled: uiShowGhost, ghostOpacity: uiGhostOpacity, pointSizeScale: uiSizeScale, pointsOpacity: uiOpacity, config } = e.detail);
+		({ particleCount, ghostEnabled: uiShowGhost, ghostOpacity: uiGhostOpacity, pointSizeScale: uiSizeScale, pointsOpacity: uiOpacity, contrast: uiContrast, contrastEnabled: uiContrastEnabled, showFPS: uiShowFPS, config } = e.detail);
 		if (p5Instance && p5Instance.setParticleCount) p5Instance.setParticleCount(+particleCount);
 	}
 
@@ -47,6 +52,7 @@
 			// GPU point rendering state
 			let gl;
 			let points; // points renderer instance
+			let camShader; // camera shader for ghost image
 			let positions = new Float32Array(0);
 			let sizes = new Float32Array(0);
 			// pixel readback cache to reduce getImageData warnings
@@ -91,6 +97,9 @@
 				// init GPU points renderer now that GL exists
 				gl = p._renderer.GL;
 				points = createPointsRenderer(gl);
+				
+				// create camera shader for ghost image
+				camShader = p.createShader(camVert, camFrag);
 
 				// init particles
 				initParticles(particleCount);
@@ -99,12 +108,15 @@
 			p.draw = () => {
 				p.clear();
 				if (video && video.elt && (video.elt.readyState === 4 || video.elt.readyState === 3)) {
-					if (uiShowGhost) {
+					if (uiShowGhost && camShader) {
 						p.push();
-						p.tint(255, 255 * uiGhostOpacity);
-						p.scale(-1, 1); // mirror horizontally
-						p.image(video, -p.width / 2, -p.height / 2, p.width, p.height);
-						p.noTint();
+						p.shader(camShader);
+						camShader.setUniform('tex0', video);
+						camShader.setUniform('u_flip', 1.0); // flip horizontally to match mirror
+						camShader.setUniform('u_opacityGhost', uiGhostOpacity);
+						camShader.setUniform('u_contrast', uiContrastEnabled ? uiContrast : 1.0);
+						p.rect(-p.width / 2, -p.height / 2, p.width, p.height);
+						p.resetShader();
 						p.pop();
 					}
 
@@ -113,6 +125,18 @@
 						rbCtx.drawImage(video.elt, 0, 0, rbCanvas.width, rbCanvas.height);
 						if (p.frameCount - lastReadbackFrame >= readbackInterval) {
 							const imgData = rbCtx.getImageData(0, 0, rbCanvas.width, rbCanvas.height);
+							
+							// Apply contrast adjustment to the pixel data used by particles
+							if (uiContrastEnabled && uiContrast !== 1.0) {
+								const pixels = imgData.data;
+								for (let i = 0; i < pixels.length; i += 4) {
+									// Apply contrast to RGB channels (skip alpha)
+									pixels[i] = Math.min(255, Math.max(0, ((pixels[i] - 128) * uiContrast + 128)));     // R
+									pixels[i + 1] = Math.min(255, Math.max(0, ((pixels[i + 1] - 128) * uiContrast + 128))); // G
+									pixels[i + 2] = Math.min(255, Math.max(0, ((pixels[i + 2] - 128) * uiContrast + 128))); // B
+								}
+							}
+							
 							cachedPixels = imgData.data;
 							lastReadbackFrame = p.frameCount;
 						}
@@ -135,6 +159,11 @@
 					if (p.resetShader) p.resetShader();
 				} else {
 					p.background(50);
+				}
+				
+				// Update FPS display (throttled)
+				if (p.frameCount % 10 === 0) {
+					currentFPS = Math.round(p.frameRate());
 				}
 			};
 
@@ -183,6 +212,13 @@
 		style="position:fixed; inset:0; width:100%; height:100%; z-index:0;"
 	></div>
 
+	<!-- FPS Display -->
+	{#if uiShowFPS}
+		<div style="position:fixed; top:1rem; right:1rem; z-index:2; background:rgba(0,0,0,0.7); color:white; padding:0.5rem 1rem; border-radius:0.5rem; font-family:monospace; font-size:0.9rem;">
+			FPS: {currentFPS}
+		</div>
+	{/if}
+
 	<div style="position:relative; z-index:1; padding:1rem; max-width:40ch;">
 			<ControlsPanel
 				particleCount={particleCount}
@@ -190,6 +226,9 @@
 				ghostOpacity={uiGhostOpacity}
 				pointSizeScale={uiSizeScale}
 				pointsOpacity={uiOpacity}
+				contrast={uiContrast}
+				contrastEnabled={uiContrastEnabled}
+				showFPS={uiShowFPS}
 				config={config}
 				on:change={handlePanelChange}
 			/>

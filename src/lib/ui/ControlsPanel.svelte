@@ -7,6 +7,9 @@
     export let ghostOpacity = 0.35;
     export let pointSizeScale = 1.0;
     export let pointsOpacity = 1.0;
+    export let contrast = 1.0;
+    export let contrastEnabled = true;
+    export let showFPS = true;
     export let config = {
         neighborRadius: 40,
         maxNeighbors: 40,
@@ -29,6 +32,9 @@
             ghostOpacity,
             pointSizeScale,
             pointsOpacity,
+            contrast,
+            contrastEnabled,
+            showFPS,
             config,
         });
 </script>
@@ -125,6 +131,59 @@
                 bind:value={pointsOpacity}
                 on:input={emit}
             />
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Enable/disable contrast adjustment processing for performance.">
+                Contrast processing:
+            </label>
+            <div class="control-toggle">
+                <input
+                    type="checkbox"
+                    style="display: none;"
+                    bind:checked={contrastEnabled}
+                    on:change={emit}
+                    title="Enable/disable contrast adjustment processing for performance."
+                />
+                <div class="custom-toggle" class:active={contrastEnabled} on:click={() => { contrastEnabled = !contrastEnabled; emit(); }} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { contrastEnabled = !contrastEnabled; emit(); } }} tabindex="0" role="switch" aria-checked={contrastEnabled}>
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Contrast adjustment applied to the camera image used for particle behavior. Higher values increase contrast.">
+                Image contrast:
+            </label>
+            <div class="control-value">{contrast.toFixed(2)}</div>
+            <input
+                title="Contrast adjustment applied to the camera image used for particle behavior. Higher values increase contrast."
+                type="range"
+                min="0.2"
+                max="5"
+                step="0.05"
+                bind:value={contrast}
+                on:input={emit}
+                disabled={!contrastEnabled}
+            />
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Show/hide the FPS display in the top right corner.">
+                Show FPS:
+            </label>
+            <div class="control-toggle">
+                <input
+                    type="checkbox"
+                    style="display: none;"
+                    bind:checked={showFPS}
+                    on:change={emit}
+                    title="Show/hide the FPS display in the top right corner."
+                />
+                <div class="custom-toggle" class:active={showFPS} on:click={() => { showFPS = !showFPS; emit(); }} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { showFPS = !showFPS; emit(); } }} tabindex="0" role="switch" aria-checked={showFPS}>
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
         </div>
     </div>
 

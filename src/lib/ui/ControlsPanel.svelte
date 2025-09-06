@@ -44,10 +44,12 @@
         aria-label={open ? "Hide controls" : "Show controls"}
         >{open ? "◂" : "▸"}</button
     >
-    <div class="row">
-        <label
-            title="Total number of particles to simulate. Higher values are heavier on CPU/GPU."
-            >Particles: {particleCount}
+    <div class="control-grid">
+        <div class="control-row">
+            <label class="control-label" title="Total number of particles to simulate. Higher values are heavier on CPU/GPU.">
+                Particles:
+            </label>
+            <div class="control-value">{particleCount}</div>
             <input
                 title="Total number of particles to simulate. Higher values are heavier on CPU/GPU."
                 type="range"
@@ -57,29 +59,31 @@
                 bind:value={particleCount}
                 on:input={emit}
             />
-        </label>
-    </div>
-    <div class="row">
-        <label
-            class="flex items-center gap-2 cursor-pointer"
-            title="Show the mirrored webcam image behind the points."
-        >
-            <input
-                type="checkbox"
-                style="display: none;"
-                bind:checked={ghostEnabled}
-                on:change={emit}
-                title="Show the mirrored webcam image behind the points."
-            />
-            <div class="custom-toggle" class:active={ghostEnabled}>
-                <div class="toggle-slider"></div>
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Show the mirrored webcam image behind the points.">
+                Ghost camera:
+            </label>
+            <div class="control-toggle">
+                <input
+                    type="checkbox"
+                    style="display: none;"
+                    bind:checked={ghostEnabled}
+                    on:change={emit}
+                    title="Show the mirrored webcam image behind the points."
+                />
+                <div class="custom-toggle" class:active={ghostEnabled} on:click={() => { ghostEnabled = !ghostEnabled; emit(); }} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { ghostEnabled = !ghostEnabled; emit(); } }} tabindex="0" role="switch" aria-checked={ghostEnabled}>
+                    <div class="toggle-slider"></div>
+                </div>
             </div>
-            Ghost camera
-        </label>
-    </div>
-    <div class="row">
-        <label title="Opacity of the background webcam 'ghost' layer."
-            >Ghost opacity: {ghostOpacity.toFixed(2)}
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Opacity of the background webcam 'ghost' layer.">
+                Ghost opacity:
+            </label>
+            <div class="control-value">{ghostOpacity.toFixed(2)}</div>
             <input
                 title="Opacity of the background webcam 'ghost' layer."
                 type="range"
@@ -89,11 +93,13 @@
                 bind:value={ghostOpacity}
                 on:input={emit}
             />
-        </label>
-    </div>
-    <div class="row">
-        <label title="Multiplier applied to each particle's size (in pixels)."
-            >Point size: {pointSizeScale.toFixed(2)}
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Multiplier applied to each particle's size (in pixels).)">
+                Point size:
+            </label>
+            <div class="control-value">{pointSizeScale.toFixed(2)}</div>
             <input
                 title="Multiplier applied to each particle's size (in pixels)."
                 type="range"
@@ -103,11 +109,13 @@
                 bind:value={pointSizeScale}
                 on:input={emit}
             />
-        </label>
-    </div>
-    <div class="row">
-        <label title="Opacity of the particle points."
-            >Points opacity: {pointsOpacity.toFixed(2)}
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Opacity of the particle points.">
+                Points opacity:
+            </label>
+            <div class="control-value">{pointsOpacity.toFixed(2)}</div>
             <input
                 title="Opacity of the particle points."
                 type="range"
@@ -117,35 +125,35 @@
                 bind:value={pointsOpacity}
                 on:input={emit}
             />
-        </label>
+        </div>
     </div>
 
     <details open>
-        <summary title="Parameters that drive the particle motion."
-            >Physics</summary
-        >
-        <div class="row">
-            <label
-                class="flex items-center gap-2 cursor-pointer"
-                title="If enabled, particles leaving one edge re-enter from the opposite edge (toroidal wrap). Disable to bounce inside the view."
-            >
-                <input
-                    type="checkbox"
-                    style="display: none;"
-                    bind:checked={config.wrapEdges}
-                    on:change={emit}
-                    title="If enabled, particles leaving one edge re-enter from the opposite edge (toroidal wrap). Disable to bounce inside the view."
-                />
-                <div class="custom-toggle" class:active={config.wrapEdges}>
-                    <div class="toggle-slider"></div>
+        <summary title="Parameters that drive the particle motion.">Physics</summary>
+        <div class="control-grid">
+            <div class="control-row">
+                <label class="control-label" title="If enabled, particles leaving one edge re-enter from the opposite edge (toroidal wrap). Disable to bounce inside the view.">
+                    Wrap at edges:
+                </label>
+                <div class="control-toggle">
+                    <input
+                        type="checkbox"
+                        style="display: none;"
+                        bind:checked={config.wrapEdges}
+                        on:change={emit}
+                        title="If enabled, particles leaving one edge re-enter from the opposite edge (toroidal wrap). Disable to bounce inside the view."
+                    />
+                    <div class="custom-toggle" class:active={config.wrapEdges} on:click={() => { config.wrapEdges = !config.wrapEdges; emit(); }} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { config.wrapEdges = !config.wrapEdges; emit(); } }} tabindex="0" role="switch" aria-checked={config.wrapEdges}>
+                        <div class="toggle-slider"></div>
+                    </div>
                 </div>
-                Wrap at edges
-            </label>
-        </div>
-        <div class="row">
-            <label
-                title="Interaction radius used for neighbor repulsion (in pixels). Larger values spread particles out and increase cost."
-                >Neighbor radius: {config.neighborRadius}
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Interaction radius used for neighbor repulsion (in pixels). Larger values spread particles out and increase cost.">
+                    Neighbor radius:
+                </label>
+                <div class="control-value">{config.neighborRadius}</div>
                 <input
                     title="Interaction radius used for neighbor repulsion (in pixels). Larger values spread particles out and increase cost."
                     type="range"
@@ -154,13 +162,14 @@
                     step="1"
                     bind:value={config.neighborRadius}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label
-                title="Maximum number of nearby particles considered per particle. Limits computation cost."
-                >Max neighbors: {config.maxNeighbors}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Maximum number of nearby particles considered per particle. Limits computation cost.">
+                    Max neighbors:
+                </label>
+                <div class="control-value">{config.maxNeighbors}</div>
                 <input
                     title="Maximum number of nearby particles considered per particle. Limits computation cost."
                     type="range"
@@ -169,12 +178,14 @@
                     step="1"
                     bind:value={config.maxNeighbors}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label title="Overall multiplier applied to all computed forces."
-                >Force scale: {config.forceScale.toFixed(2)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Overall multiplier applied to all computed forces.">
+                    Force scale:
+                </label>
+                <div class="control-value">{config.forceScale.toFixed(2)}</div>
                 <input
                     title="Overall multiplier applied to all computed forces."
                     type="range"
@@ -183,12 +194,14 @@
                     step="0.05"
                     bind:value={config.forceScale}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label title="Base strength of repulsion between nearby particles."
-                >Repulsion: {config.baseRepel.toFixed(2)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Base strength of repulsion between nearby particles.">
+                    Repulsion:
+                </label>
+                <div class="control-value">{config.baseRepel.toFixed(2)}</div>
                 <input
                     title="Base strength of repulsion between nearby particles."
                     type="range"
@@ -197,13 +210,14 @@
                     step="1"
                     bind:value={config.baseRepel}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label
-                title="Minimum repulsion even in bright areas (prevents collapse)."
-                >Min repulsion: {config.baseRepelMin.toFixed(2)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Minimum repulsion even in bright areas (prevents collapse).">
+                    Min repulsion:
+                </label>
+                <div class="control-value">{config.baseRepelMin.toFixed(2)}</div>
                 <input
                     title="Minimum repulsion even in bright areas (prevents collapse)."
                     type="range"
@@ -212,13 +226,14 @@
                     step="0.5"
                     bind:value={config.baseRepelMin}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label
-                title="Strength of attraction toward brighter regions of the webcam image."
-                >Light attract: {config.lightAttract.toFixed(2)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Strength of attraction toward brighter regions of the webcam image.">
+                    Light attract:
+                </label>
+                <div class="control-value">{config.lightAttract.toFixed(2)}</div>
                 <input
                     title="Strength of attraction toward brighter regions of the webcam image."
                     type="range"
@@ -227,13 +242,14 @@
                     step="0.005"
                     bind:value={config.lightAttract}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label
-                title="Gamma applied to brightness before attraction. <1 boosts darker areas; >1 favors highlights."
-                >Brightness gamma: {config.brightnessGamma.toFixed(2)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Gamma applied to brightness before attraction. <1 boosts darker areas; >1 favors highlights.">
+                    Brightness gamma:
+                </label>
+                <div class="control-value">{config.brightnessGamma.toFixed(2)}</div>
                 <input
                     title="Gamma applied to brightness before attraction. <1 boosts darker areas; >1 favors highlights."
                     type="range"
@@ -242,13 +258,14 @@
                     step="0.05"
                     bind:value={config.brightnessGamma}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label
-                title="Random jitter force to keep motion lively and avoid clumping."
-                >Jitter: {config.jitterAmp.toFixed(3)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Random jitter force to keep motion lively and avoid clumping.">
+                    Jitter:
+                </label>
+                <div class="control-value">{config.jitterAmp.toFixed(3)}</div>
                 <input
                     title="Random jitter force to keep motion lively and avoid clumping."
                     type="range"
@@ -257,13 +274,14 @@
                     step="0.0005"
                     bind:value={config.jitterAmp}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label
-                title="Cap on the per-step force magnitude to stabilize motion."
-                >Max force: {config.maxForce.toFixed(2)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Cap on the per-step force magnitude to stabilize motion.">
+                    Max force:
+                </label>
+                <div class="control-value">{config.maxForce.toFixed(2)}</div>
                 <input
                     title="Cap on the per-step force magnitude to stabilize motion."
                     type="range"
@@ -272,13 +290,14 @@
                     step="0.05"
                     bind:value={config.maxForce}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label
-                title="Velocity damping (drag). Lower values keep particles moving longer."
-                >Damping: {config.damping.toFixed(2)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Velocity damping (drag). Lower values keep particles moving longer.">
+                    Damping:
+                </label>
+                <div class="control-value">{config.damping.toFixed(2)}</div>
                 <input
                     title="Velocity damping (drag). Lower values keep particles moving longer."
                     type="range"
@@ -287,12 +306,14 @@
                     step="0.005"
                     bind:value={config.damping}
                     on:input={emit}
-                /></label
-            >
-        </div>
-        <div class="row">
-            <label title="Maximum particle speed (pixels per frame)."
-                >Max speed: {config.maxSpeed.toFixed(1)}
+                />
+            </div>
+            
+            <div class="control-row">
+                <label class="control-label" title="Maximum particle speed (pixels per frame).">
+                    Max speed:
+                </label>
+                <div class="control-value">{config.maxSpeed.toFixed(1)}</div>
                 <input
                     title="Maximum particle speed (pixels per frame)."
                     type="range"
@@ -301,8 +322,8 @@
                     step="0.1"
                     bind:value={config.maxSpeed}
                     on:input={emit}
-                /></label
-            >
+                />
+            </div>
         </div>
     </details>
 </div>
@@ -359,7 +380,7 @@
         z-index: 1000;
     }
     .panel.closed {
-        transform: translateX(calc(-100% + 40px));
+        transform: translateX(calc(-100% + 20px));
         opacity: 0.95;
     }
     /* ensure a visible handle remains when closed */
@@ -392,6 +413,39 @@
     input[type="range"] {
         width: 130px;
     }
+    
+    /* Grid layout for controls */
+    .control-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .control-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 8px;
+    }
+    .control-label {
+        font-size: 12px;
+        color: #fff;
+        min-width: 0;
+    }
+    .control-value {
+        font-size: 11px;
+        color: #aaa;
+        min-width: 36px;
+        text-align: right;
+        font-family: monospace;
+    }
+    .control-toggle {
+        grid-column: 2 / 4;
+        justify-self: end;
+    }
+    input[type="range"] {
+        width: 100px;
+        grid-column: 3;
+    }
     summary {
         cursor: pointer;
         margin-top: 6px;
@@ -415,6 +469,11 @@
         position: relative;
         transition: background-color 0.2s ease;
         border: 1px solid rgba(255, 255, 255, 0.3);
+        cursor: pointer;
+    }
+    .custom-toggle:focus {
+        outline: 2px solid #66e;
+        outline-offset: 2px;
     }
     .custom-toggle.active {
         background: #66e;

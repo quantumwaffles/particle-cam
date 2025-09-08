@@ -15,12 +15,13 @@ export function createPointsRenderer(gl) {
   const pointsFrag = `
   precision mediump float;
   uniform float u_opacity;
+  uniform vec3 u_color;
   void main() {
     vec2 d = gl_PointCoord - vec2(0.5);
     float r = length(d);
     if (r > 0.5) discard;
     float edge = smoothstep(0.5, 0.45, r);
-    gl_FragColor = vec4(1.0, 1.0, 1.0, edge * u_opacity);
+    gl_FragColor = vec4(u_color, edge * u_opacity);
   }`;
 
   const prog = createProgram(gl, pointsVert, pointsFrag);
@@ -29,10 +30,11 @@ export function createPointsRenderer(gl) {
   const uResLoc = gl.getUniformLocation(prog, 'u_resolution');
   const uSizeScaleLoc = gl.getUniformLocation(prog, 'u_sizeScale');
   const uOpacityLoc = gl.getUniformLocation(prog, 'u_opacity');
+  const uColorLoc = gl.getUniformLocation(prog, 'u_color');
   const posBuffer = gl.createBuffer();
   const sizeBuffer = gl.createBuffer();
 
-  function draw(positions, sizes, width, height, sizeScale, opacity) {
+  function draw(positions, sizes, width, height, sizeScale, opacity, color = { r: 1, g: 1, b: 1 }) {
   // preserve current GL state that p5 expects
   const prevProg = gl.getParameter(gl.CURRENT_PROGRAM);
   const wasBlend = gl.isEnabled(gl.BLEND);
@@ -45,6 +47,7 @@ export function createPointsRenderer(gl) {
     gl.uniform2f(uResLoc, width, height);
     gl.uniform1f(uSizeScaleLoc, sizeScale);
     gl.uniform1f(uOpacityLoc, opacity);
+    gl.uniform3f(uColorLoc, color.r, color.g, color.b);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);

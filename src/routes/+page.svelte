@@ -21,6 +21,8 @@
 	let uiContrast = 1.0;
 	let uiContrastEnabled = true;
 	let uiShowFPS = true;
+	let uiParticleColor = "#ffffff";
+	let uiBackgroundColor = "#000000";
 	let currentFPS = 0;
 	let config = {
 		neighborRadius: 40,
@@ -37,8 +39,16 @@
 		wrapEdges: true
 	};
 
+	// Helper function to convert hex color to RGB values (0-1)
+	function hexToRgb(hex) {
+		const r = parseInt(hex.slice(1, 3), 16) / 255;
+		const g = parseInt(hex.slice(3, 5), 16) / 255;
+		const b = parseInt(hex.slice(5, 7), 16) / 255;
+		return { r, g, b };
+	}
+
 	function handlePanelChange(e) {
-		({ particleCount, ghostEnabled: uiShowGhost, ghostOpacity: uiGhostOpacity, pointSizeScale: uiSizeScale, pointsOpacity: uiOpacity, contrast: uiContrast, contrastEnabled: uiContrastEnabled, showFPS: uiShowFPS, config } = e.detail);
+		({ particleCount, ghostEnabled: uiShowGhost, ghostOpacity: uiGhostOpacity, pointSizeScale: uiSizeScale, pointsOpacity: uiOpacity, contrast: uiContrast, contrastEnabled: uiContrastEnabled, showFPS: uiShowFPS, particleColor: uiParticleColor, backgroundColor: uiBackgroundColor, config } = e.detail);
 		if (p5Instance && p5Instance.setParticleCount) p5Instance.setParticleCount(+particleCount);
 	}
 
@@ -106,7 +116,10 @@
 			};
 
 			p.draw = () => {
-				p.clear();
+				// Apply background color
+				const bgColor = hexToRgb(uiBackgroundColor);
+				p.background(bgColor.r * 255, bgColor.g * 255, bgColor.b * 255);
+				
 				if (video && video.elt && (video.elt.readyState === 4 || video.elt.readyState === 3)) {
 					if (uiShowGhost && camShader) {
 						p.push();
@@ -155,7 +168,8 @@
 						sizes[i] = a.size;
 					}
 					// draw with custom GL program, then restore p5 state
-					points.draw(positions, sizes, p.width, p.height, uiSizeScale, uiOpacity);
+					const particleRgb = hexToRgb(uiParticleColor);
+					points.draw(positions, sizes, p.width, p.height, uiSizeScale, uiOpacity, particleRgb);
 					if (p.resetShader) p.resetShader();
 				} else {
 					p.background(50);
@@ -229,6 +243,8 @@
 				contrast={uiContrast}
 				contrastEnabled={uiContrastEnabled}
 				showFPS={uiShowFPS}
+				particleColor={uiParticleColor}
+				backgroundColor={uiBackgroundColor}
 				config={config}
 				on:change={handlePanelChange}
 			/>

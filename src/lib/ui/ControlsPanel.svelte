@@ -10,6 +10,11 @@
     export let contrast = 1.0;
     export let contrastEnabled = true;
     export let showFPS = true;
+    export let particleColor = "#ffffff";
+    export let backgroundColor = "#000000";
+    
+    let showParticleColorPicker = false;
+    let showBackgroundColorPicker = false;
     export let config = {
         neighborRadius: 40,
         maxNeighbors: 40,
@@ -35,8 +40,30 @@
             contrast,
             contrastEnabled,
             showFPS,
+            particleColor,
+            backgroundColor,
             config,
         });
+    
+    function toggleParticleColorPicker() {
+        showParticleColorPicker = !showParticleColorPicker;
+        if (showParticleColorPicker) showBackgroundColorPicker = false;
+    }
+    
+    function toggleBackgroundColorPicker() {
+        showBackgroundColorPicker = !showBackgroundColorPicker;
+        if (showBackgroundColorPicker) showParticleColorPicker = false;
+    }
+    
+    function handleParticleColorChange(event) {
+        particleColor = event.target.value;
+        emit();
+    }
+    
+    function handleBackgroundColorChange(event) {
+        backgroundColor = event.target.value;
+        emit();
+    }
 </script>
 
 <div class="panel" aria-expanded={open} class:closed={!open}>
@@ -183,6 +210,36 @@
                 <div class="custom-toggle" class:active={showFPS} on:click={() => { showFPS = !showFPS; emit(); }} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { showFPS = !showFPS; emit(); } }} tabindex="0" role="switch" aria-checked={showFPS}>
                     <div class="toggle-slider"></div>
                 </div>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Click to change the particle color.">
+                Particle color:
+            </label>
+            <div class="color-value">{particleColor}</div>
+            <div class="color-picker-container">
+                <button class="color-button" style="background-color: {particleColor}" on:click={toggleParticleColorPicker} title="Click to change particle color"></button>
+                {#if showParticleColorPicker}
+                    <div class="color-picker-popup">
+                        <input type="color" bind:value={particleColor} on:input={handleParticleColorChange} />
+                    </div>
+                {/if}
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <label class="control-label" title="Click to change the background color.">
+                Background color:
+            </label>
+            <div class="color-value">{backgroundColor}</div>
+            <div class="color-picker-container">
+                <button class="color-button" style="background-color: {backgroundColor}" on:click={toggleBackgroundColorPicker} title="Click to change background color"></button>
+                {#if showBackgroundColorPicker}
+                    <div class="color-picker-popup">
+                        <input type="color" bind:value={backgroundColor} on:input={handleBackgroundColorChange} />
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
@@ -550,5 +607,63 @@
     }
     .custom-toggle.active .toggle-slider {
         transform: translateX(16px);
+    }
+
+    /* Color picker styles */
+    .color-value {
+        font-size: 11px;
+        color: #aaa;
+        min-width: 60px;
+        text-align: right;
+        font-family: monospace;
+    }
+    .color-picker-container {
+        position: relative;
+        grid-column: 3;
+    }
+    .color-button {
+        width: 32px;
+        height: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        cursor: pointer;
+        background: none;
+        transition: border-color 0.2s ease;
+    }
+    .color-button:hover {
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+    .color-button:focus {
+        outline: 2px solid #66e;
+        outline-offset: 2px;
+    }
+    .color-picker-popup {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 1001;
+        margin-top: 4px;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    .color-picker-popup input[type="color"] {
+        width: 60px;
+        height: 40px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        background: transparent;
+    }
+    .color-picker-popup input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+        border: none;
+        border-radius: 4px;
+    }
+    .color-picker-popup input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 4px;
     }
 </style>

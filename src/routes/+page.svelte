@@ -33,7 +33,14 @@
 		minRepel: 5.0,
 		spacingBright: 8, // desired nearest-neighbor spacing in bright areas
 		spacingDark: 28,  // desired spacing in dark areas
-		darkRepel: 0.6,
+		darkRepel: 0.4,
+		shadowAttract: 0.25,
+		shadowDensityFloor: 0.45,
+		shadowDensityGamma: 0.85,
+		shadowDetailBoost: 0.55,
+		shadowDetailGradientScale: 190,
+		shadowDetailGradientPower: 0.8,
+		minSpacing: 6,
 		lightAttract: 0.08,
 		brightnessGamma: 0.85,
 		gradientRadius: 2, // pixels: distance for gradient sampling (controls smoothing)

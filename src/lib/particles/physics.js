@@ -31,9 +31,17 @@ export function stepParticles({ p, particles, pg, width, height, config, pixels,
   const forceScale = config.forceScale;
   const wrapEdges = config.wrapEdges !== false; // default true
 
+  const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
   const lum = (ix) => (pix[ix] * 0.299 + pix[ix + 1] * 0.587 + pix[ix + 2] * 0.114);
   const lightAttract = typeof config.lightAttract === 'number' ? config.lightAttract : 0.08;
   const brightnessGamma = typeof config.brightnessGamma === 'number' ? config.brightnessGamma : 0.85;
+  const shadowDensityFloor = clamp01(typeof config.shadowDensityFloor === 'number' ? config.shadowDensityFloor : 0.45);
+  const shadowDensityGamma = typeof config.shadowDensityGamma === 'number' ? Math.max(0.01, config.shadowDensityGamma) : 0.85;
+  const shadowDetailBoost = clamp01(typeof config.shadowDetailBoost === 'number' ? config.shadowDetailBoost : 0.55);
+  const shadowDetailGradientScale = Math.max(1, typeof config.shadowDetailGradientScale === 'number' ? config.shadowDetailGradientScale : 190);
+  const shadowDetailGradientPower = typeof config.shadowDetailGradientPower === 'number' ? Math.max(0.01, config.shadowDetailGradientPower) : 0.8;
+  const shadowAttract = typeof config.shadowAttract === 'number' ? config.shadowAttract : 0.25;
+  const minSpacing = typeof config.minSpacing === 'number' ? Math.max(0.1, config.minSpacing) : undefined;
 
   // Debug: track brightness values
   let brightnessValues = [];
@@ -62,19 +70,22 @@ export function stepParticles({ p, particles, pg, width, height, config, pixels,
     }
     let br = brSum / brCount; // average luminance
     let brightness = br * (1 / 255); // 0 = dark, 1 = bright
+    brightness = clamp01(brightness);
 
     // Brightness-dependent desired spacing (radius within which repulsion acts)
-    // Smaller radius in bright areas (denser), larger in dark areas (sparser)
-  const spacingBright = (typeof config.spacingBright === 'number')
+    // Smaller radius in bright areas (denser), larger in dark areas (sparser, but we apply a floor and gradient boost for detail)
+    const spacingBright = (typeof config.spacingBright === 'number')
       ? config.spacingBright
       : Math.max(2, neighborRadius * 0.3);
     const spacingDark = (typeof config.spacingDark === 'number')
       ? config.spacingDark
       : Math.max(spacingBright + 1, neighborRadius * 0.9);
-  const localRadius = spacingBright + (spacingDark - spacingBright) * (1.0 - brightness);
-  // Gain based on brightness using baseRepel/minRepel semantics
-  const gainBright = Math.min(1.0, Math.max(0.0, (baseRepel > 1e-3 ? (minRepel / baseRepel) : 0.0)));
-  const localGain = gainBright + (1.0 - gainBright) * (1.0 - brightness);
+
+    const darkness = Math.pow(1.0 - brightness, shadowDensityGamma);
+    const darknessMix = shadowDensityFloor + (1.0 - shadowDensityFloor) * darkness;
+
+    // Local gradient magnitude (computed below) modulates spacing to keep edge detail in shadows.
+    // We'll compute the gradient first, then adjust the radius before applying neighbor forces.
 
   // accumulate forces (only repulsion now)
     let fx = 0.0, fy = 0.0;
@@ -94,9 +105,22 @@ export function stepParticles({ p, particles, pg, width, height, config, pixels,
   let gLen = Math.hypot(gx, gy);
   if (gLen > 1e-5) { gx /= gLen; gy /= gLen; }
 
+  const gradNormRaw = gLen / shadowDetailGradientScale;
+  const gradNorm = Math.pow(gradNormRaw > 1 ? 1 : gradNormRaw < 0 ? 0 : gradNormRaw, shadowDetailGradientPower);
+
+  let localRadius = spacingBright + (spacingDark - spacingBright) * darknessMix;
+  localRadius -= (spacingDark - spacingBright) * shadowDetailBoost * gradNorm;
+  localRadius = Math.max(spacingBright, localRadius);
+  if (minSpacing !== undefined) localRadius = Math.max(minSpacing, localRadius);
+  if (localRadius > neighborRadius) localRadius = neighborRadius;
+
+  // Gain based on brightness using baseRepel/minRepel semantics, modulated by darkness mix for shadow detail
+  const gainBright = clamp01(baseRepel > 1e-3 ? (minRepel / baseRepel) : 0.0);
+  const localGain = gainBright + (1.0 - gainBright) * darknessMix;
+
   // 1) Attraction toward brighter regions (restored)
   // Weight with gamma so mid-tones can be emphasized/de-emphasized
-  const bGamma = Math.pow(Math.max(0.0, Math.min(1.0, brightness)), Math.max(0.01, brightnessGamma));
+  const bGamma = Math.pow(brightness, Math.max(0.01, brightnessGamma));
   fx += gx * lightAttract * bGamma;
   fy += gy * lightAttract * bGamma;
 
@@ -105,6 +129,11 @@ export function stepParticles({ p, particles, pg, width, height, config, pixels,
   const darkWeight = (1.0 - brightness);
   fx += gx * darkRepel * darkWeight;
   fy += gy * darkRepel * darkWeight;
+
+  if (shadowAttract !== 0) {
+    fx -= gx * shadowAttract * darkWeight;
+    fy -= gy * shadowAttract * darkWeight;
+  }
 
     // neighbor repulsion via grid (3x3 cells; wrap or clamp based on setting)
     let ccx = Math.min(cols - 1, Math.max(0, (a.pos.x / cellSize) | 0));

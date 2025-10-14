@@ -24,7 +24,14 @@
         minRepel: 5.0,
     spacingBright: 8,
     spacingDark: 28,
-    darkRepel: 0.6,
+    darkRepel: 0.4,
+    shadowAttract: 0.25,
+    shadowDensityFloor: 0.45,
+    shadowDensityGamma: 0.85,
+    shadowDetailBoost: 0.55,
+    shadowDetailGradientScale: 190,
+    shadowDetailGradientPower: 0.8,
+    minSpacing: 6,
     lightAttract: 0.08,
     brightnessGamma: 0.85,
     gradientRadius: 2,
@@ -408,6 +415,142 @@
             </div>
 
             <div class="control-row">
+                <label class="control-label" for="darkRepel" title="Extra push away from dark regions (positive) or allow falling into shadows (negative).">
+                    Dark repel:
+                </label>
+                <div class="control-value">{config.darkRepel.toFixed(2)}</div>
+                <input
+                    id="darkRepel"
+                    title="Extra push away from dark regions (positive) or allow falling into shadows (negative)."
+                    type="range"
+                    min="-0.2"
+                    max="1.2"
+                    step="0.05"
+                    bind:value={config.darkRepel}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
+                <label class="control-label" for="shadowAttract" title="Counter-force pulling particles into shadow gradients to fill detail.">
+                    Shadow attract:
+                </label>
+                <div class="control-value">{config.shadowAttract.toFixed(2)}</div>
+                <input
+                    id="shadowAttract"
+                    title="Counter-force pulling particles into shadow gradients to fill detail."
+                    type="range"
+                    min="0"
+                    max="0.8"
+                    step="0.02"
+                    bind:value={config.shadowAttract}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
+                <label class="control-label" for="shadowDensityFloor" title="Minimum density retained in darkest areas (0 = sparse, 1 = as dense as highlights).">
+                    Shadow density floor:
+                </label>
+                <div class="control-value">{config.shadowDensityFloor.toFixed(2)}</div>
+                <input
+                    id="shadowDensityFloor"
+                    title="Minimum density retained in darkest areas (0 = sparse, 1 = as dense as highlights)."
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    bind:value={config.shadowDensityFloor}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
+                <label class="control-label" for="shadowDensityGamma" title="Exponent shaping how quickly density grows as areas get brighter.">
+                    Shadow density gamma:
+                </label>
+                <div class="control-value">{config.shadowDensityGamma.toFixed(2)}</div>
+                <input
+                    id="shadowDensityGamma"
+                    title="Exponent shaping how quickly density grows as areas get brighter."
+                    type="range"
+                    min="0.2"
+                    max="3"
+                    step="0.05"
+                    bind:value={config.shadowDensityGamma}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
+                <label class="control-label" for="shadowDetailBoost" title="Amount of extra density added along shadow edges based on gradients.">
+                    Shadow detail boost:
+                </label>
+                <div class="control-value">{config.shadowDetailBoost.toFixed(2)}</div>
+                <input
+                    id="shadowDetailBoost"
+                    title="Amount of extra density added along shadow edges based on gradients."
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    bind:value={config.shadowDetailBoost}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
+                <label class="control-label" for="shadowDetailGradientScale" title="Gradient magnitude normalization (higher = broader detection, lower = more sensitive).">
+                    Shadow gradient scale:
+                </label>
+                <div class="control-value">{config.shadowDetailGradientScale.toFixed(0)}</div>
+                <input
+                    id="shadowDetailGradientScale"
+                    title="Gradient magnitude normalization (higher = broader detection, lower = more sensitive)."
+                    type="range"
+                    min="20"
+                    max="400"
+                    step="5"
+                    bind:value={config.shadowDetailGradientScale}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
+                <label class="control-label" for="shadowDetailGradientPower" title="Exponent applied to gradient magnitude before boosting density.">
+                    Shadow gradient power:
+                </label>
+                <div class="control-value">{config.shadowDetailGradientPower.toFixed(2)}</div>
+                <input
+                    id="shadowDetailGradientPower"
+                    title="Exponent applied to gradient magnitude before boosting density."
+                    type="range"
+                    min="0.2"
+                    max="2"
+                    step="0.02"
+                    bind:value={config.shadowDetailGradientPower}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
+                <label class="control-label" for="minSpacing" title="Absolute floor on neighbor spacing to avoid over-densifying.">
+                    Min spacing:
+                </label>
+                <div class="control-value">{config.minSpacing.toFixed(1)}</div>
+                <input
+                    id="minSpacing"
+                    title="Absolute floor on neighbor spacing to avoid over-densifying."
+                    type="range"
+                    min="1"
+                    max="20"
+                    step="0.5"
+                    bind:value={config.minSpacing}
+                    on:input={emit}
+                />
+            </div>
+
+            <div class="control-row">
                 <label class="control-label" for="brightnessGamma" title="Gamma applied to brightness for attraction weighting (lower = more weight to mid/dark tones).">
                     Brightness gamma:
                 </label>
@@ -445,7 +588,23 @@
                 <label class="control-label" for="useTargets" title="Enable brightness-weighted target distribution mode.">Targets mode:</label>
                 <div class="control-toggle">
                     <input id="useTargets" type="checkbox" style="display:none;" bind:checked={config.useTargets} on:change={emit} />
-                    <div class="custom-toggle" class:active={config.useTargets} on:click={() => { config.useTargets = !config.useTargets; emit(); }} tabindex="0" role="switch" aria-checked={config.useTargets}><div class="toggle-slider"></div></div>
+                    <div
+                        class="custom-toggle"
+                        class:active={config.useTargets}
+                        on:click={() => { config.useTargets = !config.useTargets; emit(); }}
+                        on:keydown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                config.useTargets = !config.useTargets;
+                                emit();
+                            }
+                        }}
+                        tabindex="0"
+                        role="switch"
+                        aria-checked={config.useTargets}
+                    >
+                        <div class="toggle-slider"></div>
+                    </div>
                 </div>
             </div>
             {#if config.useTargets}

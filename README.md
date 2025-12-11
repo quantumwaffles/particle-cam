@@ -1,18 +1,13 @@
-# sv
+# particle-cam
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A particle physics visualization using webcam input, built with Svelte and p5.js.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
+- Real-time webcam input
+- Particle physics simulation with brightness-based repulsion
+- WebGL rendering for performance
+- Color customization for particles and background
 
 ## Developing
 
@@ -35,4 +30,15 @@ npm run build
 
 You can preview the production build with `npm run preview`.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Deployment
+
+This project is configured to deploy automatically to GitHub Pages. When changes are pushed to the `main` branch, GitHub Actions will build and deploy the site.
+
+The deployed site will be available at: `https://quantumwaffles.github.io/particle-cam/`
+
+### Manual Deployment
+
+To deploy manually, ensure you have the GitHub Pages settings configured:
+1. Go to repository Settings > Pages
+2. Set Source to "GitHub Actions"
+3. Push to the `main` branch or manually trigger the workflow

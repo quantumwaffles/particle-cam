@@ -17,23 +17,18 @@
     let showParticleColorPicker = false;
     let showBackgroundColorPicker = false;
     export let config = {
-        neighborRadius: 40,
-        maxNeighbors: 40,
-        forceScale: 2.5,
-        baseRepel: 500.0,
-        minRepel: 5.0,
-    spacingBright: 8,
-    spacingDark: 28,
-    darkRepel: 0.4,
-    shadowAttract: 0.25,
-    shadowDensityFloor: 0.45,
-    shadowDensityGamma: 0.85,
-    shadowDetailBoost: 0.55,
-    shadowDetailGradientScale: 190,
-    shadowDetailGradientPower: 0.8,
-    minSpacing: 6,
-    lightAttract: 0.08,
-    brightnessGamma: 0.85,
+        spacingScale: 1.0,
+        maxNeighbors: 64,
+        forceScale: 1.0,
+    holeFill: 0.6,
+    darkRepel: 0.3,
+    shadowDensityFloor: 0.15,
+    shadowDensityGamma: 1.0,
+    shadowDetailBoost: 0.5,
+    shadowDetailGradientScale: 100,
+    shadowDetailGradientPower: 0.7,
+    lightAttract: 0.25,
+    brightnessGamma: 1.0,
     gradientRadius: 2,
     useTargets: false,
     targetAttract: 0.15,
@@ -41,10 +36,10 @@
     targetResampleInterval: 20,
     targetSampleStride: 2,
     targetGamma: 1.0,
-        jitterAmp: 0.0001,
-        maxForce: 3.0,
+        jitterAmp: 0.008,
+        maxForce: 2.5,
         damping: 0.85,
-        maxSpeed: 5.0,
+        maxSpeed: 4.0,
         wrapEdges: true,
     };
     const dispatch = createEventDispatcher();
@@ -313,22 +308,39 @@
             </div>
             
             <div class="control-row">
-                <label class="control-label" for="neighborRadius" title="Interaction radius used for neighbor repulsion (in pixels). Larger values spread particles out and increase cost.">
-                    Neighbor radius:
+                <label class="control-label" for="spacingScale" title="Multiplier on the automatic particle spacing (derived from particle count). Lower = tighter packing.">
+                    Spacing scale:
                 </label>
-                <div class="control-value">{config.neighborRadius}</div>
+                <div class="control-value">{config.spacingScale.toFixed(2)}</div>
                 <input
-                    id="neighborRadius"
-                    title="Interaction radius used for neighbor repulsion (in pixels). Larger values spread particles out and increase cost."
+                    id="spacingScale"
+                    title="Multiplier on the automatic particle spacing (derived from particle count). Lower = tighter packing."
                     type="range"
-                    min="6"
-                    max="80"
-                    step="1"
-                    bind:value={config.neighborRadius}
+                    min="0.5"
+                    max="1.8"
+                    step="0.02"
+                    bind:value={config.spacingScale}
                     on:input={emit}
                 />
             </div>
-            
+
+            <div class="control-row">
+                <label class="control-label" for="holeFill" title="Strength of the density-error relaxation that moves particles from crowded areas into holes.">
+                    Hole fill:
+                </label>
+                <div class="control-value">{config.holeFill.toFixed(2)}</div>
+                <input
+                    id="holeFill"
+                    title="Strength of the density-error relaxation that moves particles from crowded areas into holes."
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.05"
+                    bind:value={config.holeFill}
+                    on:input={emit}
+                />
+            </div>
+
             <div class="control-row">
                 <label class="control-label" for="maxNeighbors" title="Maximum number of nearby particles considered per particle. Limits computation cost.">
                     Max neighbors:
@@ -364,40 +376,6 @@
             </div>
             
             <div class="control-row">
-                <label class="control-label" for="baseRepel" title="Maximum repulsion strength in dark areas. Bright areas use minimum repulsion.">
-                    Max repulsion:
-                </label>
-                <div class="control-value">{config.baseRepel.toFixed(2)}</div>
-                <input
-                    id="baseRepel"
-                    title="Maximum repulsion strength in dark areas. Bright areas use minimum repulsion."
-                    type="range"
-                    min="0"
-                    max="300"
-                    step="1"
-                    bind:value={config.baseRepel}
-                    on:input={emit}
-                />
-            </div>
-            
-            <div class="control-row">
-                <label class="control-label" for="minRepel" title="Minimum repulsion in bright areas (prevents collapse).">
-                    Min repulsion:
-                </label>
-                <div class="control-value">{config.minRepel.toFixed(2)}</div>
-                <input
-                    id="minRepel"
-                    title="Minimum repulsion in bright areas (prevents collapse)."
-                    type="range"
-                    min="0"
-                    max="20"
-                    step="0.5"
-                    bind:value={config.minRepel}
-                    on:input={emit}
-                />
-            </div>
-
-            <div class="control-row">
                 <label class="control-label" for="lightAttract" title="Attraction strength toward brighter areas based on brightness gradient.">
                     Light attract:
                 </label>
@@ -427,23 +405,6 @@
                     max="1.2"
                     step="0.05"
                     bind:value={config.darkRepel}
-                    on:input={emit}
-                />
-            </div>
-
-            <div class="control-row">
-                <label class="control-label" for="shadowAttract" title="Counter-force pulling particles into shadow gradients to fill detail.">
-                    Shadow attract:
-                </label>
-                <div class="control-value">{config.shadowAttract.toFixed(2)}</div>
-                <input
-                    id="shadowAttract"
-                    title="Counter-force pulling particles into shadow gradients to fill detail."
-                    type="range"
-                    min="0"
-                    max="0.8"
-                    step="0.02"
-                    bind:value={config.shadowAttract}
                     on:input={emit}
                 />
             </div>
@@ -529,23 +490,6 @@
                     max="2"
                     step="0.02"
                     bind:value={config.shadowDetailGradientPower}
-                    on:input={emit}
-                />
-            </div>
-
-            <div class="control-row">
-                <label class="control-label" for="minSpacing" title="Absolute floor on neighbor spacing to avoid over-densifying.">
-                    Min spacing:
-                </label>
-                <div class="control-value">{config.minSpacing.toFixed(1)}</div>
-                <input
-                    id="minSpacing"
-                    title="Absolute floor on neighbor spacing to avoid over-densifying."
-                    type="range"
-                    min="1"
-                    max="20"
-                    step="0.5"
-                    bind:value={config.minSpacing}
                     on:input={emit}
                 />
             </div>

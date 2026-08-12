@@ -5,7 +5,7 @@
 	import p5 from 'p5';
 	import { createPointsRenderer } from '$lib/gpu/pointsRenderer.js';
 	import ControlsPanel from '$lib/ui/ControlsPanel.svelte';
-	import { stepParticles } from '$lib/particles/physics.js';
+	import { stepParticles, stepParticlesToTargets, densityFromBrightness, spacingFromDensity } from '$lib/particles/physics.js';
 	import { Particle } from '$lib/particles/Particle.js';
 	import { camVert, camFrag } from '$lib/shaders/camShader.js';
 
@@ -13,12 +13,12 @@
 	let p5Instance;
 
 	// state managed in the panel
-	let particleCount = 400;
-	let uiShowGhost = true;
+	let particleCount = 16000;
+	let uiShowGhost = false;
 	let uiGhostOpacity = 0.35;
-	let uiSizeScale = 1.0;
+	let uiSizeScale = 0.8;
 	let uiOpacity = 1.0;
-	let uiContrast = 1.0;
+	let uiContrast = 1.2;
 	let uiContrastEnabled = true;
 	let uiShowFPS = true;
 	let uiParticleColor = "#ffffff";
@@ -26,24 +26,19 @@
 	let uiShowBrightnessDebug = false;
 	let currentFPS = 0;
 	let config = {
-		neighborRadius: 40,
-		maxNeighbors: 40,
-		forceScale: 2.5,
-		baseRepel: 500.0,
-		minRepel: 5.0,
-		spacingBright: 8, // desired nearest-neighbor spacing in bright areas
-		spacingDark: 28,  // desired spacing in dark areas
-		darkRepel: 0.4,
-		shadowAttract: 0.25,
-		shadowDensityFloor: 0.45,
-		shadowDensityGamma: 0.85,
-		shadowDetailBoost: 0.55,
-		shadowDetailGradientScale: 190,
-		shadowDetailGradientPower: 0.8,
-		minSpacing: 6,
-		lightAttract: 0.08,
-		brightnessGamma: 0.85,
-		gradientRadius: 2, // pixels: distance for gradient sampling (controls smoothing)
+		spacingScale: 1.0, // multiplier on the auto-derived particle spacing
+		maxNeighbors: 64,
+		forceScale: 1.0,
+		holeFill: 0.6, // density-error relaxation strength (fills holes)
+		darkRepel: 0.3,
+		shadowDensityFloor: 0.15,
+		shadowDensityGamma: 1.0,
+		shadowDetailBoost: 0.5,
+		shadowDetailGradientScale: 100,
+		shadowDetailGradientPower: 0.7,
+		lightAttract: 0.25,
+		brightnessGamma: 1.0,
+		gradientRadius: 2, // sample-buffer pixels: distance for gradient sampling
 		// target distribution (importance sampling) settings
 		useTargets: false,
 		targetAttract: 0.15,
@@ -51,10 +46,10 @@
 		targetResampleInterval: 20, // frames between resampling targets
 		targetSampleStride: 2, // pixel stride when building weight map
 		targetGamma: 1.0, // gamma applied to brightness when weighting
-		jitterAmp: 0.0001,
-		maxForce: 3.0,
+		jitterAmp: 0.008,
+		maxForce: 2.5,
 		damping: 0.85,
-		maxSpeed: 5.0,
+		maxSpeed: 4.0,
 		wrapEdges: true
 	};
 
@@ -79,7 +74,14 @@
 			let dbgGfx; // p5.Graphics used to display grayscale brightness
 			let dbgImageData = null; // cached ImageData buffer for grayscale
 			let tooltipGfx = null; // small 2D overlay for tooltip text
-			const sampleScale = 1.0; // full-res sampling for crisper brightness data
+			// cap the brightness-sampling buffer: full window resolution is wasted
+			// on the physics field and makes getImageData the frame's biggest cost
+			const sampleTargetWidth = 480;
+			const sampleSize = () => {
+				const w = Math.max(1, Math.min(sampleTargetWidth, Math.floor(p.width)));
+				const h = Math.max(1, Math.round(w * (p.height / Math.max(1, p.width))));
+				return { w, h };
+			};
 
 			// GPU point rendering state
 			let gl;
@@ -177,8 +179,9 @@
 
 				// offscreen 2D canvas for sampling with willReadFrequently
 				rbCanvas = document.createElement('canvas');
-				rbCanvas.width = Math.max(1, Math.floor(p.width * sampleScale));
-				rbCanvas.height = Math.max(1, Math.floor(p.height * sampleScale));
+				const ss = sampleSize();
+				rbCanvas.width = ss.w;
+				rbCanvas.height = ss.h;
 				rbCtx = rbCanvas.getContext('2d', { willReadFrequently: true });
 
 				// graphics buffer for grayscale debug view
@@ -269,10 +272,8 @@
 					}
 					// compute physics and apply forces (either classic field or target distribution)
 					if (config.useTargets && config.targetPositions) {
-						import('$lib/particles/physics.js').then(mod => {
-							mod.stepParticlesToTargets({ particles, width: p.width, height: p.height, config });
-							for (let i = 0; i < particles.length; i++) particles[i].update(config, p.width, p.height);
-						});
+						stepParticlesToTargets({ particles, width: p.width, height: p.height, config });
+						for (let i = 0; i < particles.length; i++) particles[i].update(config, p.width, p.height);
 					} else {
 						stepParticles({ p, particles, pg: null, width: p.width, height: p.height, config, pixels: cachedPixels, sampleWidth: rbCanvas.width, sampleHeight: rbCanvas.height });
 						for (let i = 0; i < particles.length; i++) particles[i].update(config, p.width, p.height);
@@ -335,28 +336,21 @@
 					const gLen = Math.hypot(gx, gy);
 
 					// physics-derived scalars at this point
-					const spacingBright = typeof config.spacingBright === 'number' ? config.spacingBright : Math.max(2, config.neighborRadius * 0.3);
-					const spacingDark = typeof config.spacingDark === 'number' ? config.spacingDark : Math.max(spacingBright + 1, config.neighborRadius * 0.9);
-					const localRadius = spacingBright + (spacingDark - spacingBright) * (1.0 - brightness);
-					const baseRepel = config.baseRepel;
-					const minRepel = config.minRepel;
-					const gainBright = Math.min(1.0, Math.max(0.0, baseRepel > 1e-3 ? (minRepel / baseRepel) : 0.0));
-					const localGain = gainBright + (1.0 - gainBright) * (1.0 - brightness);
-					const bGamma = Math.pow(Math.max(0.0, Math.min(1.0, brightness)), Math.max(0.01, config.brightnessGamma ?? 0.85));
-					const attractMag = (config.lightAttract ?? 0.08) * bGamma;
-					const darkRepelMag = (config.darkRepel ?? 0.6) * (1.0 - brightness);
-					const fieldMag = attractMag + darkRepelMag;
-					const scaledFieldMag = Math.min(config.maxForce, fieldMag * config.forceScale);
+					const sAvg = Math.sqrt((p.width * p.height) / Math.max(1, particles.length));
+					const dnorm = densityFromBrightness(brightness, config);
+					const spacing = spacingFromDensity(dnorm, sAvg, config);
+					const gradScale = Math.max(1, config.shadowDetailGradientScale ?? 100);
+					const gnorm = Math.pow(Math.min(1, gLen / gradScale), Math.max(0.05, config.shadowDetailGradientPower ?? 0.7));
+					const bGamma = Math.pow(Math.max(0.0, Math.min(1.0, brightness)), Math.max(0.01, config.brightnessGamma ?? 1.0));
+					const fieldMag = gnorm * ((config.lightAttract ?? 0.25) * bGamma + (config.darkRepel ?? 0.3) * (1.0 - brightness));
 
 					// prepare tooltip lines
 					const lines = [
 						`brightness: ${brightness.toFixed(3)}`,
 						`grad| |: ${(gLen / 255).toFixed(3)}`,
-						`attract: ${attractMag.toFixed(3)}`,
-						`darkRepel: ${darkRepelMag.toFixed(3)}`,
-						`field*scale: ${scaledFieldMag.toFixed(3)}`,
-						`spacing: ${localRadius.toFixed(1)}`,
-						`repelGain: ${localGain.toFixed(2)}`
+						`edge force: ${(fieldMag * config.forceScale).toFixed(3)}`,
+						`density: ${dnorm.toFixed(2)}`,
+						`spacing: ${spacing.toFixed(1)}`
 					];
 					// measure with 2D canvas font metrics and render onto a small graphics
 					const fontCss = '12px monospace';
@@ -422,8 +416,9 @@
 
 			p.windowResized = () => {
 				p.resizeCanvas(p.windowWidth, p.windowHeight);
-				rbCanvas.width = Math.max(1, Math.floor(p.width * sampleScale));
-				rbCanvas.height = Math.max(1, Math.floor(p.height * sampleScale));
+				const rs = sampleSize();
+				rbCanvas.width = rs.w;
+				rbCanvas.height = rs.h;
 				// recreate debug graphics to match new sampling size
 				dbgGfx = p.createGraphics(rbCanvas.width, rbCanvas.height);
 				if (dbgGfx.pixelDensity) dbgGfx.pixelDensity(1);
